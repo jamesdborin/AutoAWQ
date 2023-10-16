@@ -67,7 +67,7 @@ class QuantLlamaAttention(nn.Module):
         o_proj,
         dev,
         max_new_tokens,
-        use_hf_rotary=False
+        use_hf_rotary=True
     ):
         super().__init__()
         self.hidden_size = hidden_size
@@ -87,7 +87,17 @@ class QuantLlamaAttention(nn.Module):
         else:
             self.rotary_emb = QuantLlamaRotaryEmbedding(self.head_dim, max_position_embeddings=max_new_tokens, device = dev)
 
-    def forward(self, hidden_states, past_key_value=None, attention_mask=None, position_ids=None, output_attentions=False, use_cache=False):
+    def forward(
+            self, 
+            hidden_states, 
+            past_key_value=None, 
+            attention_mask=None, 
+            position_ids=None, 
+            output_attentions=False, 
+            use_cache=False,
+            *args, 
+            **kwargs
+        ):
         """Input shape: Batch x Time x Channel"""
 
         bsz, q_len, _ = hidden_states.size()
@@ -156,11 +166,13 @@ class QuantLlamaAttention(nn.Module):
 
         past_key_value = (key, value) if use_cache else None
 
-        # with torch.backends.cuda.sdp_kernel(enable_math=False):
-        attn_output = F.scaled_dot_product_attention(query, key, value, is_causal=is_causal)
+        with torch.autocast(device_type='cuda', dtype=torch.float32):
+            # with torch.backends.cuda.sdp_kernel(enable_math=False):
+            attn_output = F.scaled_dot_product_attention(query, key, value, is_causal=is_causal)
+        
         del query, key, value
 
-        attn_output = attn_output.transpose(1, 2).reshape(bsz, q_len, self.hidden_size)
+        attn_output = attn_output.transpose(1, 2).reshape(bsz, q_len, self.hidden_size).half()
         attn_output = self.o_proj(attn_output)
 
         return attn_output, None, past_key_value

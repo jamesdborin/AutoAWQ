@@ -34,8 +34,8 @@ common_setup_kwargs = {
 }
 
 requirements = [
-    "torch>=2.0.0",
-    "transformers>=4.32.0",
+    "torch==2.0.1",
+    "transformers==4.34.0",
     "tokenizers>=0.12.1",
     "accelerate",
     "sentencepiece",
@@ -68,7 +68,7 @@ def get_compute_capabilities():
         compute_capabilities.add(major * 10 + minor)
 
     # figure out compute capability
-    compute_capabilities = {80, 86, 89, 90}
+    # compute_capabilities = {80, 86, 89, 90}
 
     capability_flags = []
     for cap in compute_capabilities:
